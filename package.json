@@ -13,9 +13,11 @@
     "test": "node --test"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^18.0.9",
     "express": "^5.1.0",
+    "express-validator": "^7.3.2",
     "mongoose": "^8.24.7"
   }
 }
