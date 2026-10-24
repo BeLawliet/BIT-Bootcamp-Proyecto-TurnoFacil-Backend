@@ -3,6 +3,7 @@ import express from 'express';
 
 import { errorHandler } from './middlewares/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
+import serviciosRoutes from './routes/servicios.routes.js';
 import { sendResponse } from './utils/sendResponse.js';
 
 const app = express();
@@ -19,6 +20,7 @@ api.get('/health', (_request, response) => {
 });
 
 api.use('/auth', authRoutes);
+api.use('/servicios', serviciosRoutes);
 app.use('/api/v1', api);
 
 app.use((_request, response) => {
