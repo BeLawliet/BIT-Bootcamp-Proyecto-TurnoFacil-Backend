@@ -26,6 +26,31 @@ function respuestaPublica(cita, servicio) {
   };
 }
 
+function fechaEnFormatoIso(fecha) {
+  return fecha ? new Date(fecha).toISOString() : null;
+}
+
+function respuestaPublicaDeConsulta(cita) {
+  const servicio = cita.servicioId && typeof cita.servicioId.nombre === 'string'
+    ? {
+      id: cita.servicioId._id.toString(),
+      nombre: cita.servicioId.nombre,
+    }
+    : null;
+
+  return {
+    id: cita._id.toString(),
+    servicio,
+    fecha: cita.fecha,
+    hora: cita.hora,
+    estado: cita.estado,
+    precioReservado: cita.precioReservado,
+    notas: cita.notas ?? null,
+    createdAt: fechaEnFormatoIso(cita.createdAt),
+    updatedAt: fechaEnFormatoIso(cita.updatedAt),
+  };
+}
+
 export async function crearCita(request, response, next) {
   const {
     servicioId,
@@ -67,6 +92,23 @@ export async function crearCita(request, response, next) {
       return sendResponse(response, 409, 'El horario seleccionado ya está reservado');
     }
 
+    return next(error);
+  }
+}
+
+export async function obtenerMisCitas(request, response, next) {
+  try {
+    const citas = await Cita.find({ usuarioId: request.usuario.id })
+      .sort({ fecha: -1, hora: -1 })
+      .populate({ path: 'servicioId', select: 'nombre' })
+      .lean();
+    const data = citas.map(respuestaPublicaDeConsulta);
+    const message = data.length > 0
+      ? 'Reservas consultadas correctamente'
+      : 'No tienes reservas registradas';
+
+    return sendResponse(response, 200, message, data);
+  } catch (error) {
     return next(error);
   }
 }
