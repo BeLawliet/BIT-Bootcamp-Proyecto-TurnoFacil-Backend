@@ -1,29 +1,63 @@
+import 'dotenv/config';
 import process from 'node:process';
 
-import app from './app.js';
+import mongoose from 'mongoose';
 
-const port = Number.parseInt(process.env.PORT ?? '3000', 10);
+import app from './app.js';
+import { connectToDatabase } from './config/db.js';
+
+const port = Number(process.env.PORT ?? '3000');
+
+async function disconnectFromDatabase() {
+  try {
+    await mongoose.disconnect();
+    return true;
+  } catch {
+    console.error('No se pudo cerrar la conexión con MongoDB.');
+    return false;
+  }
+}
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
   console.error('PORT debe ser un entero entre 1 y 65535.');
-  process.exit(1);
-}
+  process.exitCode = 1;
+} else {
+  try {
+    await connectToDatabase();
 
-const server = app.listen(port, () => {
-  console.log(`TurnoFácil Backend escuchando en el puerto ${port}`);
-});
+    const server = app.listen(port, () => {
+      console.log(`TurnoFácil Backend escuchando en el puerto ${port}`);
+    });
 
-function shutdown(signal) {
-  console.log(`${signal} recibido; cerrando el servidor.`);
-  server.close((error) => {
-    if (error) {
-      console.error(error);
-      process.exit(1);
+    server.once('error', async () => {
+      console.error('No se pudo iniciar el servidor HTTP.');
+      await disconnectFromDatabase();
+      process.exitCode = 1;
+    });
+
+    async function shutdown(signal) {
+      console.log(`${signal} recibido; cerrando el servidor.`);
+      let exitCode = 0;
+
+      try {
+        await new Promise((resolve, reject) => {
+          server.close((error) => (error ? reject(error) : resolve()));
+        });
+      } catch {
+        console.error('No se pudo cerrar el servidor HTTP.');
+        exitCode = 1;
+      }
+
+      if (!(await disconnectFromDatabase())) exitCode = 1;
+
+      process.exitCode = exitCode;
     }
 
-    process.exit(0);
-  });
+    process.once('SIGINT', () => void shutdown('SIGINT'));
+    process.once('SIGTERM', () => void shutdown('SIGTERM'));
+  } catch {
+    console.error('No se pudo conectar a MongoDB; el servidor no se inició.');
+    await disconnectFromDatabase();
+    process.exitCode = 1;
+  }
 }
-
-process.once('SIGINT', () => shutdown('SIGINT'));
-process.once('SIGTERM', () => shutdown('SIGTERM'));
