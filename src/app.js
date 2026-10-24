@@ -1,7 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 
-import { errorHandler } from './middleware/errorHandler.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import { sendResponse } from './utils/sendResponse.js';
 

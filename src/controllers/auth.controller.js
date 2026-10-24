@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 
 import Usuario from '../models/Usuario.js';
 import { sendResponse } from '../utils/sendResponse.js';
-import { crearTokenAcceso, obtenerConfiguracionJwt } from '../utils/jwt.js';
+import { crearTokenAcceso } from '../utils/jwt.js';
 
 const BCRYPT_COST = 10;
 
@@ -70,4 +70,13 @@ export async function iniciarSesion(request, response, next) {
   } catch (error) {
     return next(error);
   }
+}
+
+export function obtenerUsuarioAutenticado(request, response) {
+  return sendResponse(
+    response,
+    200,
+    'Usuario autenticado correctamente',
+    request.usuario,
+  );
 }
