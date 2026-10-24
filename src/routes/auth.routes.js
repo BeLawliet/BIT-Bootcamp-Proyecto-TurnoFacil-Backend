@@ -2,8 +2,10 @@ import { Router } from 'express';
 
 import {
   iniciarSesion,
+  obtenerUsuarioAutenticado,
   registrarUsuario,
 } from '../controllers/auth.controller.js';
+import { autenticarUsuario } from '../middlewares/auth.middleware.js';
 import {
   validarLogin,
   validarRegistro,
@@ -25,5 +27,6 @@ authRoutes.post(
   validarSolicitudLogin,
   iniciarSesion,
 );
+authRoutes.get('/me', autenticarUsuario, obtenerUsuarioAutenticado);
 
 export default authRoutes;
