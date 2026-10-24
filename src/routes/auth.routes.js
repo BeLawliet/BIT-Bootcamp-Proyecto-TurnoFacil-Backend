@@ -1,8 +1,13 @@
 import { Router } from 'express';
 
-import { registrarUsuario } from '../controllers/auth.controller.js';
 import {
+  iniciarSesion,
+  registrarUsuario,
+} from '../controllers/auth.controller.js';
+import {
+  validarLogin,
   validarRegistro,
+  validarSolicitudLogin,
   validarSolicitudRegistro,
 } from '../validators/auth.validator.js';
 
@@ -13,6 +18,12 @@ authRoutes.post(
   validarRegistro,
   validarSolicitudRegistro,
   registrarUsuario,
+);
+authRoutes.post(
+  '/login',
+  validarLogin,
+  validarSolicitudLogin,
+  iniciarSesion,
 );
 
 export default authRoutes;

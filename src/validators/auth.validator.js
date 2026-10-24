@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import { sendResponse } from '../utils/sendResponse.js';
 
 const camposPermitidos = new Set(['nombre', 'correo', 'password', 'telefono']);
+const camposLoginPermitidos = new Set(['correo', 'password']);
 const telefonoColombianoRegex = /^3\d{9}$/;
 
 export const validarRegistro = [
@@ -36,13 +37,26 @@ export const validarRegistro = [
     .withMessage('El teléfono debe ser un número colombiano de 10 dígitos.'),
 ];
 
-export function validarSolicitudRegistro(request, response, next) {
+export const validarLogin = [
+  body('correo')
+    .isString().withMessage('El correo debe ser una cadena de texto.')
+    .bail()
+    .trim()
+    .toLowerCase()
+    .isEmail().withMessage('El correo electrónico no tiene un formato válido.'),
+  body('password')
+    .isString().withMessage('La contraseña debe ser una cadena de texto.')
+    .bail()
+    .notEmpty().withMessage('La contraseña es obligatoria.'),
+];
+
+function validarSolicitud(request, response, next, camposPermitidosSolicitud) {
   const bodyData = request.body;
   const camposDesconocidos = !bodyData
     || typeof bodyData !== 'object'
     || Array.isArray(bodyData)
     ? ['body']
-    : Object.keys(bodyData).filter((campo) => !camposPermitidos.has(campo));
+    : Object.keys(bodyData).filter((campo) => !camposPermitidosSolicitud.has(campo));
   const errores = validationResult(request);
 
   if (camposDesconocidos.length > 0 || !errores.isEmpty()) {
@@ -50,4 +64,12 @@ export function validarSolicitudRegistro(request, response, next) {
   }
 
   return next();
+}
+
+export function validarSolicitudRegistro(request, response, next) {
+  return validarSolicitud(request, response, next, camposPermitidos);
+}
+
+export function validarSolicitudLogin(request, response, next) {
+  return validarSolicitud(request, response, next, camposLoginPermitidos);
 }

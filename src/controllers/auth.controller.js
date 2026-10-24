@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 
 import Usuario from '../models/Usuario.js';
 import { sendResponse } from '../utils/sendResponse.js';
+import { crearTokenAcceso, obtenerConfiguracionJwt } from '../utils/jwt.js';
 
 const BCRYPT_COST = 10;
 
@@ -44,6 +45,29 @@ export async function registrarUsuario(request, response, next) {
       return sendResponse(response, 409, 'El correo electrónico ya está registrado');
     }
 
+    return next(error);
+  }
+}
+
+export async function iniciarSesion(request, response, next) {
+  const { correo, password } = request.body;
+  const correoNormalizado = correo.trim().toLowerCase();
+
+  try {
+    const usuario = await Usuario.findOne({ correo: correoNormalizado }).select('+passwordHash');
+
+    if (!usuario || !(await bcrypt.compare(password, usuario.passwordHash))) {
+      return sendResponse(response, 401, 'Correo o contraseña incorrectos');
+    }
+
+    const { token, expiresIn } = crearTokenAcceso(usuario._id);
+    return sendResponse(response, 200, 'Inicio de sesión exitoso', {
+      token,
+      tokenType: 'Bearer',
+      expiresIn,
+      usuario: respuestaPublica(usuario),
+    });
+  } catch (error) {
     return next(error);
   }
 }
