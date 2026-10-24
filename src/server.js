@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 
 import app from './app.js';
 import { connectToDatabase } from './config/db.js';
+import { validarConfiguracionJwt } from './utils/jwt.js';
 
 const port = Number(process.env.PORT ?? '3000');
 
@@ -23,6 +24,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
   process.exitCode = 1;
 } else {
   try {
+    validarConfiguracionJwt();
     await connectToDatabase();
 
     const server = app.listen(port, () => {
@@ -55,8 +57,12 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 
     process.once('SIGINT', () => void shutdown('SIGINT'));
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
-  } catch {
-    console.error('No se pudo conectar a MongoDB; el servidor no se inició.');
+  } catch (error) {
+    if (error?.code === 'JWT_CONFIG_INVALID') {
+      console.error('La configuración JWT es inválida; el servidor no se inició.');
+    } else {
+      console.error('No se pudo conectar a MongoDB; el servidor no se inició.');
+    }
     await disconnectFromDatabase();
     process.exitCode = 1;
   }
