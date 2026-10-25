@@ -1,5 +1,6 @@
 import Cita from '../models/Cita.js';
 import Servicio from '../models/Servicio.js';
+import { calcularHorasDisponibles } from '../config/horarios.js';
 import { sendResponse } from '../utils/sendResponse.js';
 
 function esConflictoDeHorario(error) {
@@ -108,6 +109,62 @@ export async function obtenerMisCitas(request, response, next) {
       : 'No tienes reservas registradas';
 
     return sendResponse(response, 200, message, data);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function obtenerDisponibilidad(request, response, next) {
+  const { fecha } = request.query;
+
+  try {
+    const citas = await Cita.find({ fecha, estado: 'activa' })
+      .select({ _id: 0, hora: 1 })
+      .sort({ hora: 1 })
+      .lean();
+    const horasOcupadas = citas.map(({ hora }) => hora);
+    const horasDisponibles = calcularHorasDisponibles(fecha, horasOcupadas);
+
+    return sendResponse(response, 200, 'Disponibilidad consultada correctamente', {
+      fecha,
+      horasOcupadas,
+      horasDisponibles,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function cancelarCita(request, response, next) {
+  const filtroPropietario = {
+    _id: request.params.id,
+    usuarioId: request.usuario.id,
+  };
+
+  try {
+    const cita = await Cita.findOneAndUpdate(
+      { ...filtroPropietario, estado: 'activa' },
+      { $set: { estado: 'cancelada' } },
+      { new: true, runValidators: true },
+    );
+
+    if (cita) {
+      return sendResponse(response, 200, 'Reserva cancelada correctamente', {
+        id: cita._id.toString(),
+        estado: cita.estado,
+      });
+    }
+
+    const citaCancelada = await Cita.exists({
+      ...filtroPropietario,
+      estado: 'cancelada',
+    });
+
+    if (citaCancelada) {
+      return sendResponse(response, 409, 'La reserva ya se encuentra cancelada');
+    }
+
+    return sendResponse(response, 404, 'Reserva no encontrada');
   } catch (error) {
     return next(error);
   }
