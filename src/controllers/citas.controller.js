@@ -1,5 +1,6 @@
 import Cita from '../models/Cita.js';
 import Servicio from '../models/Servicio.js';
+import { calcularHorasDisponibles } from '../config/horarios.js';
 import { sendResponse } from '../utils/sendResponse.js';
 
 function esConflictoDeHorario(error) {
@@ -122,10 +123,12 @@ export async function obtenerDisponibilidad(request, response, next) {
       .sort({ hora: 1 })
       .lean();
     const horasOcupadas = citas.map(({ hora }) => hora);
+    const horasDisponibles = calcularHorasDisponibles(fecha, horasOcupadas);
 
     return sendResponse(response, 200, 'Disponibilidad consultada correctamente', {
       fecha,
       horasOcupadas,
+      horasDisponibles,
     });
   } catch (error) {
     return next(error);
