@@ -1,16 +1,34 @@
+import cors from 'cors';
 import express from 'express';
 
+import { errorHandler } from './middlewares/errorHandler.js';
+import authRoutes from './routes/auth.routes.js';
+import citasRoutes from './routes/citas.routes.js';
+import serviciosRoutes from './routes/servicios.routes.js';
+import { sendResponse } from './utils/sendResponse.js';
+
 const app = express();
+const api = express.Router();
 
 app.disable('x-powered-by');
+app.use(cors({ origin: process.env.CORS_ORIGIN || false }));
 app.use(express.json());
 
-app.get('/health', (_request, response) => {
-  response.status(200).json({ status: 'ok' });
+api.get('/health', (_request, response) => {
+  sendResponse(response, 200, 'API de TurnoFácil funcionando', {
+    service: 'TurnoFácil Backend',
+  });
 });
 
+api.use('/auth', authRoutes);
+api.use('/citas', citasRoutes);
+api.use('/servicios', serviciosRoutes);
+app.use('/api/v1', api);
+
 app.use((_request, response) => {
-  response.status(404).json({ error: 'Not found' });
+  sendResponse(response, 404, 'Recurso no encontrado');
 });
+
+app.use(errorHandler);
 
 export default app;
