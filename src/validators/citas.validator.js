@@ -1,8 +1,14 @@
-import { body, param, validationResult } from 'express-validator';
+import {
+  body,
+  param,
+  query,
+  validationResult,
+} from 'express-validator';
 
 import { sendResponse } from '../utils/sendResponse.js';
 
 const camposPermitidos = new Set(['servicioId', 'fecha', 'hora', 'notas']);
+const parametrosDisponibilidadPermitidos = new Set(['fecha']);
 const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
 const horaRegex = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
@@ -46,6 +52,10 @@ function esFechaHoraFutura(fecha, hora) {
   return fecha > actual.fecha || (fecha === actual.fecha && hora > actual.hora);
 }
 
+function esFechaActualOFutura(fecha) {
+  return fecha >= obtenerFechaHoraBogota().fecha;
+}
+
 export const validarCita = [
   body('servicioId')
     .isString().withMessage('El servicio es obligatorio.')
@@ -68,6 +78,19 @@ export const validarCita = [
     .bail()
     .trim()
     .isLength({ max: 500 }).withMessage('Las notas no pueden superar 500 caracteres.'),
+];
+
+export const validarDisponibilidad = [
+  query('fecha')
+    .isString().withMessage('La fecha es obligatoria.')
+    .bail()
+    .matches(fechaRegex).withMessage('La fecha debe tener el formato YYYY-MM-DD.')
+    .bail()
+    .custom(esFechaCalendarioValida)
+    .withMessage('La fecha no representa un día válido del calendario.')
+    .bail()
+    .custom(esFechaActualOFutura)
+    .withMessage('La fecha debe corresponder al día actual o a una fecha futura.'),
 ];
 
 export const validarIdCita = [
@@ -97,6 +120,17 @@ export function validarSolicitudCita(request, response, next) {
 
 export function validarSolicitudIdCita(request, response, next) {
   if (!validationResult(request).isEmpty()) {
+    return sendResponse(response, 400, 'Los datos proporcionados no son válidos');
+  }
+
+  return next();
+}
+
+export function validarSolicitudDisponibilidad(request, response, next) {
+  const parametrosDesconocidos = Object.keys(request.query)
+    .some((parametro) => !parametrosDisponibilidadPermitidos.has(parametro));
+
+  if (parametrosDesconocidos || !validationResult(request).isEmpty()) {
     return sendResponse(response, 400, 'Los datos proporcionados no son válidos');
   }
 

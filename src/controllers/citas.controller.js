@@ -113,6 +113,25 @@ export async function obtenerMisCitas(request, response, next) {
   }
 }
 
+export async function obtenerDisponibilidad(request, response, next) {
+  const { fecha } = request.query;
+
+  try {
+    const citas = await Cita.find({ fecha, estado: 'activa' })
+      .select({ _id: 0, hora: 1 })
+      .sort({ hora: 1 })
+      .lean();
+    const horasOcupadas = citas.map(({ hora }) => hora);
+
+    return sendResponse(response, 200, 'Disponibilidad consultada correctamente', {
+      fecha,
+      horasOcupadas,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 export async function cancelarCita(request, response, next) {
   const filtroPropietario = {
     _id: request.params.id,
