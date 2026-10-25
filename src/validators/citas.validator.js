@@ -1,4 +1,4 @@
-import { body, validationResult } from 'express-validator';
+import { body, param, validationResult } from 'express-validator';
 
 import { sendResponse } from '../utils/sendResponse.js';
 
@@ -70,6 +70,11 @@ export const validarCita = [
     .isLength({ max: 500 }).withMessage('Las notas no pueden superar 500 caracteres.'),
 ];
 
+export const validarIdCita = [
+  param('id')
+    .isMongoId().withMessage('El identificador de la reserva no es válido.'),
+];
+
 export function validarSolicitudCita(request, response, next) {
   const bodyData = request.body;
   const camposDesconocidos = !bodyData
@@ -84,6 +89,14 @@ export function validarSolicitudCita(request, response, next) {
   }
 
   if (!esFechaHoraFutura(request.body.fecha, request.body.hora)) {
+    return sendResponse(response, 400, 'Los datos proporcionados no son válidos');
+  }
+
+  return next();
+}
+
+export function validarSolicitudIdCita(request, response, next) {
+  if (!validationResult(request).isEmpty()) {
     return sendResponse(response, 400, 'Los datos proporcionados no son válidos');
   }
 

@@ -112,3 +112,38 @@ export async function obtenerMisCitas(request, response, next) {
     return next(error);
   }
 }
+
+export async function cancelarCita(request, response, next) {
+  const filtroPropietario = {
+    _id: request.params.id,
+    usuarioId: request.usuario.id,
+  };
+
+  try {
+    const cita = await Cita.findOneAndUpdate(
+      { ...filtroPropietario, estado: 'activa' },
+      { $set: { estado: 'cancelada' } },
+      { new: true, runValidators: true },
+    );
+
+    if (cita) {
+      return sendResponse(response, 200, 'Reserva cancelada correctamente', {
+        id: cita._id.toString(),
+        estado: cita.estado,
+      });
+    }
+
+    const citaCancelada = await Cita.exists({
+      ...filtroPropietario,
+      estado: 'cancelada',
+    });
+
+    if (citaCancelada) {
+      return sendResponse(response, 409, 'La reserva ya se encuentra cancelada');
+    }
+
+    return sendResponse(response, 404, 'Reserva no encontrada');
+  } catch (error) {
+    return next(error);
+  }
+}
